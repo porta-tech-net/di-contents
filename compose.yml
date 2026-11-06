@@ -1,0 +1,10 @@
+
+services:
+  app:
+    build: .
+    container_name: laravel-di-study
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
