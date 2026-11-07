@@ -1,0 +1,19 @@
+<?php
+
+namespace App\OrderComparison\ManualDi;
+
+use Illuminate\Http\JsonResponse;
+
+class OrderController
+{
+    public function index(): JsonResponse
+    {
+        $stock = new StockService();
+        $price = new PriceService();
+        $repository = new OrderRepository();
+
+        $service = new OrderService($stock, $price, $repository);
+
+        return response()->json($service->placeOrder(1001, 2));
+    }
+}

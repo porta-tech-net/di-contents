@@ -24,7 +24,29 @@ Route::get('/test-bind', function () {
         'same_instance' => $service1 === $service2,
         'service1_id' => spl_object_id($service1),
         'service2_id' => spl_object_id($service2),
-    ];
-
-    
+    ]; 
 });
+
+// Comparison: direct instantiation (new)
+Route::get('/orders/direct-new', [\App\OrderComparison\DirectNew\OrderController::class, 'index']);
+
+// Comparison: CI2-style shared superobject (not Laravel's container)
+Route::get('/orders/super-object', [\App\OrderComparison\SuperObject\OrderController::class, 'index']);
+
+// Comparison: manual constructor injection (no container resolution)
+Route::get('/orders/manual-di', [\App\OrderComparison\ManualDi\OrderController::class, 'index']);
+
+// Comparison: container auto-resolution with concrete classes
+Route::get('/orders/container-concrete', [\App\OrderComparison\ContainerConcrete\OrderController::class, 'index']);
+
+// Comparison: container resolution through interfaces
+Route::get('/orders/container-interface', [\App\OrderComparison\ContainerInterface\OrderController::class, 'index']);
+
+// Comparison: inheritance (template method)
+Route::get('/orders/inheritance', [\App\OrderComparison\Inheritance\OrderController::class, 'index']);
+
+// Comparison: inheritance plus interface contract
+Route::get('/orders/inheritance-interface', [\App\OrderComparison\InheritanceInterface\OrderController::class, 'index']);
+
+// Comparison: trait-based workflow reuse
+Route::get('/orders/trait', [\App\OrderComparison\Trait\OrderController::class, 'index']);

@@ -17,6 +17,11 @@ class AppServiceProvider extends ServiceProvider
             MessageServiceInterface::class,
             MessageService::class
         );
+
+        // Order comparison: interface-to-concrete bindings (transient).
+        $this->app->bind(\App\OrderComparison\ContainerInterface\StockServiceInterface::class, \App\OrderComparison\ContainerInterface\StockService::class);
+        $this->app->bind(\App\OrderComparison\ContainerInterface\PriceServiceInterface::class, \App\OrderComparison\ContainerInterface\PriceService::class);
+        $this->app->bind(\App\OrderComparison\ContainerInterface\OrderRepositoryInterface::class, \App\OrderComparison\ContainerInterface\OrderRepository::class);
     }
 
     /**
