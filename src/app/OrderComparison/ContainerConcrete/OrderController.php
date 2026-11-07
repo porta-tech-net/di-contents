@@ -14,4 +14,15 @@ class OrderController
     {
         return response()->json($this->orderService->placeOrder(1001, 2));
     }
+
+    public function reservation(): JsonResponse
+    {
+        return response()->json(
+            $this->orderService->placeOrder(
+                1001,
+                2,
+                'reservation'
+            )
+        );
+    }
 }

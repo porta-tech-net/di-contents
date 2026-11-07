@@ -10,13 +10,25 @@ abstract class BaseOrderService
     ) {
     }
 
-    final public function placeOrder(int $productId, int $quantity): array
-    {
-        if (! $this->stockService->hasStock($productId, $quantity)) {
-            return ['success' => false, 'message' => 'Insufficient stock'];
+    final public function placeOrder(
+        int $productId,
+        int $quantity,
+        string $orderType = 'normal'
+    ): array {
+        if (
+            $orderType === 'normal'
+            && ! $this->stockService->hasStock($productId, $quantity)
+        ) {
+            return [
+                'success' => false,
+                'message' => 'Insufficient stock'
+            ];
         }
 
-        $amounts = $this->calculateTotal($productId, $quantity);
+        $amounts = $this->calculateTotal(
+            $productId,
+            $quantity
+        );
 
         return [
             'success' => true,

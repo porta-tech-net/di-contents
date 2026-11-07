@@ -8,15 +8,24 @@ class OrderService
     {
     }
 
-    public function placeOrder(int $productId, int $quantity): array
-    {
-        if (! $this->app->stockService->hasStock($productId, $quantity)) {
-            return ['success' => false, 'message' => 'Insufficient stock'];
+    public function placeOrder(
+        int $productId,
+        int $quantity,
+        string $orderType = 'normal'
+    ): array {
+        if (
+            $orderType === 'normal'
+            && ! $this->app->stockService->hasStock($productId, $quantity)
+        ) {
+            return [
+                'success' => false,
+                'message' => 'Insufficient stock'
+            ];
         }
 
         $amounts = $this->app->priceService->calculate(
-        $productId,
-        $quantity
+            $productId,
+            $quantity
         );
 
         return [
@@ -27,7 +36,7 @@ class OrderService
                 $amounts['subtotal'],
                 $amounts['tax'],
                 $amounts['total']
-            )
+            ),
         ];
     }
 }

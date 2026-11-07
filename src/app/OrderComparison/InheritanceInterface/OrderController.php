@@ -19,4 +19,21 @@ class OrderController
 
         return response()->json($orderService->placeOrder(1001, 2));
     }
+
+    public function reservation(): JsonResponse
+    {
+        $service = new OrderService(
+            new StockService(),
+            new OrderRepository(),
+            new PriceService()
+        );
+
+        return response()->json(
+            $service->placeOrder(
+                1001,
+                2,
+                'reservation'
+            )
+        );
+    }
 }

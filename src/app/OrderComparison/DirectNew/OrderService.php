@@ -4,14 +4,21 @@ namespace App\OrderComparison\DirectNew;
 
 class OrderService
 {
-    public function placeOrder(int $productId, int $quantity): array
-    {
+    public function placeOrder(
+        int $productId,
+        int $quantity,
+        string $orderType = 'normal'
+    ): array {
         $stock = new StockService();
         $price = new PriceService();
         $repository = new OrderRepository();
 
-        if (! $stock->hasStock($productId, $quantity)) {
-            return ['success' => false, 'message' => 'Insufficient stock'];
+        if ($orderType === 'normal'
+            && ! $stock->hasStock($productId, $quantity)) {
+            return [
+                'success' => false,
+                'message' => 'Insufficient stock'
+            ];
         }
 
         $amounts = $price->calculate($productId, $quantity);
