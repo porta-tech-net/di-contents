@@ -6,13 +6,13 @@ namespace App\OrderComparison\SuperObject;
 class SuperObject
 {
     public readonly StockService $stockService;
-    public readonly PriceService $priceService;
+    public readonly DiscountPriceService $priceService;
     public readonly OrderRepository $orderRepository;
 
     public function __construct()
     {
         $this->stockService = new StockService();
-        $this->priceService = new PriceService();
+        $this->priceService = new DiscountPriceService();
         $this->orderRepository = new OrderRepository();
     }
 }

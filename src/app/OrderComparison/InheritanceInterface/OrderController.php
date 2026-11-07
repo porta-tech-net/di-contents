@@ -12,7 +12,7 @@ class OrderController
         $service = new OrderService(
             new StockService(),
             new OrderRepository(),
-            new PriceService()
+            new DiscountPriceService()
         );
 
         $orderService = $service; // Implements OrderServiceInterface
@@ -25,7 +25,7 @@ class OrderController
         $service = new OrderService(
             new StockService(),
             new OrderRepository(),
-            new PriceService()
+            new DiscountPriceService()
         );
 
         return response()->json(

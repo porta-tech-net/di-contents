@@ -10,7 +10,7 @@ class OrderController
     {
         $service = new OrderService(
             new StockService(),
-            new PriceService(),
+            new DiscountPriceService(),
             new OrderRepository()
         );
 
@@ -21,7 +21,7 @@ class OrderController
     {
         $service = new OrderService(
             new StockService(),
-            new PriceService(),
+            new DiscountPriceService(),
             new OrderRepository()
         );
 

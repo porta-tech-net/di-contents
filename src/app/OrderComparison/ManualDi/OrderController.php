@@ -9,7 +9,7 @@ class OrderController
     public function index(): JsonResponse
     {
         $stock = new StockService();
-        $price = new PriceService();
+        $price = new DiscountPriceService();
         $repository = new OrderRepository();
 
         $service = new OrderService($stock, $price, $repository);
@@ -21,7 +21,7 @@ class OrderController
     {
         $service = new OrderService(
             new StockService(),
-            new PriceService(),
+            new DiscountPriceService(),
             new OrderRepository()
         );
 

@@ -7,7 +7,7 @@ class OrderService extends BaseOrderService
     public function __construct(
         StockService $stockService,
         OrderRepository $orderRepository,
-        private PriceService $priceService
+        private DiscountPriceService $priceService
     ) {
         parent::__construct($stockService, $orderRepository);
     }

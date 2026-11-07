@@ -10,7 +10,7 @@ class OrderService
         string $orderType = 'normal'
     ): array {
         $stock = new StockService();
-        $price = new PriceService();
+        $price = new DiscountPriceService();
         $repository = new OrderRepository();
 
         if ($orderType === 'normal'

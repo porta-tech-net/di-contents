@@ -8,7 +8,7 @@ class OrderService
 
     public function __construct(
         private StockService $stockService,
-        private PriceService $priceService,
+        private DiscountPriceService $priceService,
         private OrderRepository $orderRepository
     ) {
     }
