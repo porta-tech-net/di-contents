@@ -10,11 +10,20 @@ trait OrderProcessingTrait
             return ['success' => false, 'message' => 'Insufficient stock'];
         }
 
-        $total = $this->priceService->calculate($productId, $quantity);
+        $amounts = $this->priceService->calculate(
+            $productId,
+            $quantity
+        );
 
         return [
             'success' => true,
-            'order' => $this->orderRepository->save($productId, $quantity, $total),
+            'order' => $this->orderRepository->save(
+                $productId,
+                $quantity,
+                $amounts['subtotal'],
+                $amounts['tax'],
+                $amounts['total']
+            ),
         ];
     }
 }

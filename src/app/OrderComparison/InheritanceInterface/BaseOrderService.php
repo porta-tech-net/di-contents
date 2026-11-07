@@ -16,13 +16,22 @@ abstract class BaseOrderService implements OrderServiceInterface
             return ['success' => false, 'message' => 'Insufficient stock'];
         }
 
-        $total = $this->calculateTotal($productId, $quantity);
+        $amounts = $this->calculateTotal($productId, $quantity);
 
         return [
             'success' => true,
-            'order' => $this->orderRepository->save($productId, $quantity, $total),
+            'order' => $this->orderRepository->save(
+                $productId,
+                $quantity,
+                $amounts['subtotal'],
+                $amounts['tax'],
+                $amounts['total']
+            ),
         ];
     }
 
-    abstract protected function calculateTotal(int $productId, int $quantity): int;
+    abstract protected function calculateTotal(
+        int $productId,
+        int $quantity
+    ): array;
 }

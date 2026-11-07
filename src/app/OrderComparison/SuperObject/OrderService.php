@@ -14,8 +14,20 @@ class OrderService
             return ['success' => false, 'message' => 'Insufficient stock'];
         }
 
-        $total = $this->app->priceService->calculate($productId, $quantity);
+        $amounts = $this->app->priceService->calculate(
+        $productId,
+        $quantity
+        );
 
-        return ['success' => true, 'order' => $this->app->orderRepository->save($productId, $quantity, $total)];
+        return [
+            'success' => true,
+            'order' => $this->app->orderRepository->save(
+                $productId,
+                $quantity,
+                $amounts['subtotal'],
+                $amounts['tax'],
+                $amounts['total']
+            )
+        ];
     }
 }

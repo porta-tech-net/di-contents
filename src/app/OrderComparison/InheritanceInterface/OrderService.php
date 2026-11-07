@@ -12,8 +12,13 @@ class OrderService extends BaseOrderService
         parent::__construct($stockService, $orderRepository);
     }
 
-    protected function calculateTotal(int $productId, int $quantity): int
-    {
-        return $this->priceService->calculate($productId, $quantity);
+    protected function calculateTotal(
+        int $productId,
+        int $quantity
+    ): array {
+        return $this->priceService->calculate(
+            $productId,
+            $quantity
+        );
     }
 }

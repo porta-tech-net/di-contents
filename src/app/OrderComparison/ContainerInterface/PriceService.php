@@ -6,12 +6,19 @@ class PriceService implements PriceServiceInterface
 {
     private array $prices = [1001 => 1000];
 
-    public function calculate(int $productId, int $quantity): int
+    public function calculate(int $productId, int $quantity): array
     {
         if (! isset($this->prices[$productId])) {
             throw new \InvalidArgumentException('Unknown product');
         }
 
-        return $this->prices[$productId] * $quantity;
+        $subtotal = $this->prices[$productId] * $quantity;
+        $tax = (int) floor($subtotal * 0.10);
+
+        return [
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'total' => $subtotal + $tax,
+        ];
     }
 }
