@@ -6,6 +6,11 @@ class DiscountPriceService
 {
     private array $prices = [1001 => 1000];
 
+    public function __construct(
+        private MemberService $memberService
+    ) {
+    }
+
     public function calculate(int $productId, int $quantity): array
     {
         if (! isset($this->prices[$productId])) {
@@ -13,9 +18,10 @@ class DiscountPriceService
         }
 
         $subtotal = $this->prices[$productId] * $quantity;
+        $discountRate = $this->memberService->getDiscountRate(1);
 
         $discountedSubtotal = $subtotal
-            - (int) floor($subtotal * 0.10);
+            - (int) floor($subtotal * $discountRate);
 
         $tax = (int) floor($discountedSubtotal * 0.08);
 

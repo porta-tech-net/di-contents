@@ -12,10 +12,13 @@ class DiscountPriceService
             throw new \InvalidArgumentException('Unknown product');
         }
 
+        $memberService = new MemberService();
+        $discountRate = $memberService->getDiscountRate(1);
+
         $subtotal = $this->prices[$productId] * $quantity;
 
         $discountedSubtotal = $subtotal
-            - (int) floor($subtotal * 0.10);
+            - (int) floor($subtotal * $discountRate);
 
         $tax = (int) floor($discountedSubtotal * 0.08);
 

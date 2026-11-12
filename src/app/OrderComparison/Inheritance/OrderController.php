@@ -12,7 +12,7 @@ class OrderController
         $service = new OrderService(
             new StockService(),
             new OrderRepository(),
-            new DiscountPriceService()
+            new DiscountPriceService(new MemberService)
         );
 
         return response()->json($service->placeOrder(1001, 2));
@@ -23,7 +23,7 @@ class OrderController
         $service = new OrderService(
             new StockService(),
             new OrderRepository(),
-            new DiscountPriceService()
+            new DiscountPriceService(new MemberService)
         );
         return response()->json(
             $service->placeOrder(
@@ -39,7 +39,7 @@ class OrderController
         $service = new OrderService(
             new StockService(),
             new OrderRepository(),
-            new DiscountPriceService()
+            new DiscountPriceService(new MemberService)
         );
 
         return response()->json(

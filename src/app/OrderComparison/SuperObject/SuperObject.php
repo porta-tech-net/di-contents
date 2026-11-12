@@ -8,11 +8,15 @@ class SuperObject
     public readonly StockService $stockService;
     public readonly DiscountPriceService $priceService;
     public readonly OrderRepository $orderRepository;
+    public readonly MemberService $memberService;
 
     public function __construct()
     {
         $this->stockService = new StockService();
-        $this->priceService = new DiscountPriceService();
         $this->orderRepository = new OrderRepository();
+        $this->memberService = new MemberService();
+        $this->priceService = new DiscountPriceService(
+            $this->memberService
+        );
     }
 }
