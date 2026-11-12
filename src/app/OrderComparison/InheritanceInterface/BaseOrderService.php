@@ -16,7 +16,7 @@ abstract class BaseOrderService implements OrderServiceInterface
         string $orderType = 'normal'
     ): array {
         if (
-            $orderType === 'normal'
+            $orderType !== 'reservation'
             && ! $this->stockService->hasStock($productId, $quantity)
         ) {
             return [

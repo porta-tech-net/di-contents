@@ -36,4 +36,17 @@ class OrderController
             )
         );
     }
+
+    public function subscription(): JsonResponse
+    {
+        $service = new OrderService(
+            new StockService(),
+            new OrderRepository(),
+            new DiscountPriceService()
+        );
+
+        return response()->json(
+            $service->placeOrder(1001, 2, 'subscription')
+        );
+    }
 }

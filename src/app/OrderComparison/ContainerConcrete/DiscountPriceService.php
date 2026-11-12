@@ -10,7 +10,7 @@ class DiscountPriceService extends PriceService
 
         $discount = (int) floor($amounts['subtotal'] * 0.10);
         $subtotal = $amounts['subtotal'] - $discount;
-        $tax = (int) floor($subtotal * 0.10);
+        $tax = (int) floor($subtotal * 0.08);
 
         return [
             'subtotal' => $subtotal,

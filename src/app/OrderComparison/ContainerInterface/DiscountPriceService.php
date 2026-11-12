@@ -17,7 +17,7 @@ class DiscountPriceService implements PriceServiceInterface
         $discount = (int) floor($subtotal * 0.10);
         $subtotal -= $discount;
 
-        $tax = (int) floor($subtotal * 0.10);
+        $tax = (int) floor($subtotal * 0.08);
 
         return [
             'subtotal' => $subtotal,

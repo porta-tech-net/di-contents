@@ -14,7 +14,7 @@ class OrderService
         string $orderType = 'normal'
     ): array {
         if (
-            $orderType === 'normal'
+            $orderType !== 'reservation'
             && ! $this->app->stockService->hasStock($productId, $quantity)
         ) {
             return [

@@ -25,4 +25,11 @@ class OrderController
             )
         );
     }
+
+    public function subscription(): JsonResponse
+    {
+        return response()->json(
+            $this->orderService->placeOrder(1001, 2, 'subscription')
+        );
+    }
 }

@@ -22,4 +22,14 @@ class OrderController
             $service->placeOrder(1001, 2, 'reservation')
         );
     }
+
+    public function subscription(): JsonResponse
+    {
+        $app = new SuperObject();
+        $service = new OrderService($app);
+
+        return response()->json(
+            $service->placeOrder(1001, 2, 'subscription')
+        );
+    }
 }

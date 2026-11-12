@@ -13,7 +13,7 @@ class OrderService
         $price = new DiscountPriceService();
         $repository = new OrderRepository();
 
-        if ($orderType === 'normal'
+        if ($orderType !== 'reservation'
             && ! $stock->hasStock($productId, $quantity)) {
             return [
                 'success' => false,

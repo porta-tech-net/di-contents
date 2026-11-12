@@ -29,4 +29,17 @@ class OrderController
             $service->placeOrder(1001, 2, 'reservation')
         );
     }
+
+    public function subscription(): JsonResponse
+    {
+        $service = new OrderService(
+            new StockService(),
+            new DiscountPriceService(),
+            new OrderRepository()
+        );
+
+        return response()->json(
+            $service->placeOrder(1001, 2, 'subscription')
+        );
+    }
 }

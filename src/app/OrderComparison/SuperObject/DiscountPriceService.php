@@ -17,7 +17,7 @@ class DiscountPriceService
         $discountedSubtotal = $subtotal
             - (int) floor($subtotal * 0.10);
 
-        $tax = (int) floor($discountedSubtotal * 0.10);
+        $tax = (int) floor($discountedSubtotal * 0.08);
 
         return [
             'subtotal' => $discountedSubtotal,
