@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WithoutDiController;
 use App\Http\Controllers\WithDiController;
+use App\OrderComparison\Lifetime\LifetimeService;
 
 Route::get('/', function () {
     return view('welcome');
@@ -115,3 +116,123 @@ Route::get(
     '/orders/inheritance-interface/subscription',
     [\App\OrderComparison\InheritanceInterface\OrderController::class, 'subscription']
 );
+
+// STEP9 ライブタイムの確認
+
+
+Route::get('/lifetime/bind', function () {
+    $app = app();
+
+    $app->bind(
+        LifetimeService::class,
+        LifetimeService::class
+    );
+
+    $first = $app->make(LifetimeService::class);
+    $first->increment();
+
+    $second = $app->make(LifetimeService::class);
+
+    return response()->json([
+        'same_instance' => $first === $second,
+        'first_count' => $first->count,
+        'second_count' => $second->count,
+    ]);
+});
+
+Route::get('/lifetime/singleton', function () {
+    $app = app();
+
+    $app->singleton(
+        LifetimeService::class,
+        LifetimeService::class
+    );
+
+    $first = $app->make(LifetimeService::class);
+    $first->increment();
+
+    $second = $app->make(LifetimeService::class);
+
+    return response()->json([
+        'same_instance' => $first === $second,
+        'first_count' => $first->count,
+        'second_count' => $second->count,
+    ]);
+});
+
+Route::get('/lifetime/scoped', function () {
+    $app = app();
+
+    $app->scoped(
+        LifetimeService::class,
+        LifetimeService::class
+    );
+
+    $first = $app->make(LifetimeService::class);
+    $first->increment();
+
+    $second = $app->make(LifetimeService::class);
+
+    return response()->json([
+        'same_instance' => $first === $second,
+        'first_count' => $first->count,
+        'second_count' => $second->count,
+    ]);
+});
+
+Route::get('/lifetime/manual-di', function () {
+    // インスタンスを1回だけ生成
+    $service = new LifetimeService();
+
+    // 同じインスタンスを2つの変数で共有
+    $first = $service;
+    $second = $service;
+
+    $first->increment();
+
+    return response()->json([
+        'same_instance' => $first === $second,
+        'first_count' => $first->count,
+        'second_count' => $second->count,
+    ]);
+});
+
+Route::get('/lifetime/scope-comparison', function () {
+    // 検証専用のコンテナを作成
+    $container = new \Illuminate\Container\Container();
+
+    $container->singleton(
+        'lifetime.singleton',
+        LifetimeService::class
+    );
+
+    $container->scoped(
+        'lifetime.scoped',
+        LifetimeService::class
+    );
+
+    // 1回目の解決
+    $singleton1 = $container->make('lifetime.singleton');
+    $scoped1 = $container->make('lifetime.scoped');
+
+    $singleton1->increment();
+    $scoped1->increment();
+
+    // スコープの終了を再現
+    $container->forgetScopedInstances();
+
+    // 2回目の解決
+    $singleton2 = $container->make('lifetime.singleton');
+    $scoped2 = $container->make('lifetime.scoped');
+
+    return response()->json([
+        'singleton' => [
+            'same_instance' => $singleton1 === $singleton2,
+            'count' => $singleton2->count,
+        ],
+        'scoped' => [
+            'same_instance' => $scoped1 === $scoped2,
+            'count' => $scoped2->count,
+        ],
+    ]);
+});
