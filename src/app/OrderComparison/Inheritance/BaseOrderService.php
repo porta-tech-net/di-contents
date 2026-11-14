@@ -15,6 +15,17 @@ abstract class BaseOrderService
         int $quantity,
         string $orderType = 'normal'
     ): array {
+
+        if (
+            $orderType === 'reservation'
+            && ! $this->validateReservation($quantity)
+        ) {
+            return [
+                'success' => false,
+                'message' => 'Reservation quantity limit exceeded'
+            ];
+        }
+
         if (
             $orderType !== 'reservation'
             && ! $this->stockService->hasStock($productId, $quantity)
@@ -46,4 +57,9 @@ abstract class BaseOrderService
         int $productId,
         int $quantity
     ): array;
+
+    protected function validateReservation(int $quantity): bool
+    {
+        return true;
+    }
 }

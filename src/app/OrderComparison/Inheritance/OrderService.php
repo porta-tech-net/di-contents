@@ -21,4 +21,9 @@ class OrderService extends BaseOrderService
             $quantity
         );
     }
+
+    protected function validateReservation(int $quantity): bool
+    {
+        return $quantity <= 5;
+    }
 }

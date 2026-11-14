@@ -13,6 +13,13 @@ class OrderService
         $price = new DiscountPriceService();
         $repository = new OrderRepository();
 
+        if ($orderType === 'reservation' && $quantity > 5) {
+            return [
+                'success' => false,
+                'message' => 'Reservation quantity limit exceeded'
+            ];
+        }
+
         if ($orderType !== 'reservation'
             && ! $stock->hasStock($productId, $quantity)) {
             return [

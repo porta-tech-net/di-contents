@@ -18,7 +18,7 @@ class OrderController
         $service = new OrderService();
 
         return response()->json(
-            $service->placeOrder(1001, 2, 'reservation')
+            $service->placeOrder(1001, 6, 'reservation')
         );
     }
 

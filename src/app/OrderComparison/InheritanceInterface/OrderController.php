@@ -31,7 +31,7 @@ class OrderController
         return response()->json(
             $service->placeOrder(
                 1001,
-                2,
+                6,
                 'reservation'
             )
         );

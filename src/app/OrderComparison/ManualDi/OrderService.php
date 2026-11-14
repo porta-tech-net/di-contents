@@ -16,6 +16,14 @@ class OrderService
         int $quantity,
         string $orderType = 'normal'
     ): array {
+
+        if ($orderType === 'reservation' && $quantity > 5) {
+            return [
+                'success' => false,
+                'message' => 'Reservation quantity limit exceeded'
+            ];
+        }
+
         if (
             $orderType !== 'reservation'
             && ! $this->stockService->hasStock($productId, $quantity)
