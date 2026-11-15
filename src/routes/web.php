@@ -246,3 +246,66 @@ Route::get('/lifetime/scope-comparison', function () {
         ],
     ]);
 });
+
+// STEP12 Pure DI - Composition Root
+$createOrderController = function () {
+
+    // OrderServiceの生成処理を共通化
+    $createOrderService = function (
+        \App\OrderComparison\ManualDi\StockService $stockService
+    ) {
+        return new \App\OrderComparison\ManualDi\OrderService(
+            $stockService,
+            new \App\OrderComparison\ManualDi\DiscountPriceService(
+                new \App\OrderComparison\ManualDi\MemberService()
+            ),
+            new \App\OrderComparison\ManualDi\OrderRepository()
+        );
+    };
+
+    // 通常注文だけFakeStockServiceを使用
+    $normalOrderService = $createOrderService(
+        new \App\OrderComparison\ManualDi\FakeStockService()
+    );
+
+    // 予約・定期・ログ付き注文
+    $service = $createOrderService(
+        new \App\OrderComparison\ManualDi\StockService()
+    );
+
+    // ログ付き注文にはデコレーターを追加
+    $loggingService = new \App\OrderComparison\ManualDi\LoggingOrderService(
+        $service
+    );
+
+    return new \App\OrderComparison\ManualDi\CompositionRootOrderController(
+        $normalOrderService,
+        $service,
+        $loggingService
+    );
+};
+
+
+// 通常注文
+Route::get(
+    '/orders/manual-di/composition-root',
+    fn () => $createOrderController()->index()
+);
+
+// 予約注文
+Route::get(
+    '/orders/manual-di/composition-root/reservation',
+    fn () => $createOrderController()->reservation()
+);
+
+// 定期注文
+Route::get(
+    '/orders/manual-di/composition-root/subscription',
+    fn () => $createOrderController()->subscription()
+);
+
+// ログ付き注文
+Route::get(
+    '/orders/manual-di/composition-root/logging',
+    fn () => $createOrderController()->logging()
+);
