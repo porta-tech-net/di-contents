@@ -376,3 +376,83 @@ Route::get('/orders/method-injection', function () {
         'fake' => $fake
     ]);
 });
+
+// STEP15 プロパティ経由での依存注入
+Route::get('/orders/property-injection', function () {
+
+    // StockServiceを渡さずにオブジェクトを生成
+    $service = new \App\OrderComparison\ManualDi\PropertyInjectionOrderService(
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // オブジェクト生成後に依存サービスを設定
+    $service->stockService =
+        new \App\OrderComparison\ManualDi\StockService();
+
+    // 注文処理を実行
+    $result = $service->placeOrder(1001, 2);
+
+    return response()->json($result);
+});
+
+
+// STEP15 プロパティ注入：依存サービスの設定漏れ
+Route::get('/orders/property-injection/missing', function () {
+
+    $service = new \App\OrderComparison\ManualDi\PropertyInjectionOrderService(
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // StockServiceを設定しない
+    // $service->stockService = new StockService();
+
+    try {
+        $result = $service->placeOrder(1001, 2);
+
+        return response()->json($result);
+
+    } catch (\Error $e) {
+
+        return response()->json([
+            'success' => false,
+            'error' => get_class($e),
+            'message' => $e->getMessage()
+        ]);
+    }
+});
+
+// STEP15 プロパティ注入：依存先の差し替え
+Route::get('/orders/property-injection/replace', function () {
+
+    $service = new \App\OrderComparison\ManualDi\PropertyInjectionOrderService(
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // 1回目：通常の在庫確認
+    $service->stockService =
+        new \App\OrderComparison\ManualDi\StockService();
+
+    $normal = $service->placeOrder(1001, 2);
+
+    // 2回目：同じインスタンスの依存先を変更
+    $service->stockService =
+        new \App\OrderComparison\ManualDi\FakeStockService();
+
+    $fake = $service->placeOrder(1001, 2);
+
+    return response()->json([
+        'normal' => $normal,
+        'fake' => $fake
+    ]);
+});
+
+
