@@ -455,4 +455,380 @@ Route::get('/orders/property-injection/replace', function () {
     ]);
 });
 
+// STEP16 注入パターンの選択：クーポン注文
+Route::get('/orders/injection-selection/coupon', function () {
+
+    $service = new \App\OrderComparison\ManualDi\CouponOrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // 通常注文：CouponServiceは渡さない
+    $normal = $service->placeOrder(1001, 2);
+
+    // クーポン注文：CouponServiceをメソッド注入
+    $coupon = $service->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500',
+        new \App\OrderComparison\ManualDi\CouponService()
+    );
+
+    return response()->json([
+        'normal' => $normal,
+        'coupon' => $coupon
+    ]);
+});
+
+
+ // STEP16 クーポンサービスの注入方式を比較
+Route::get('/orders/injection-selection/compare', function () {
+
+    // ① メソッド注入版
+    $methodService = new \App\OrderComparison\ManualDi\CouponOrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // ② コンストラクタ注入版
+    $constructorService = new \App\OrderComparison\ManualDi\ConstructorCouponOrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ManualDi\CouponService()
+    );
+
+    // 同じ条件でクーポン注文を実行
+    $method = $methodService->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500',
+        new \App\OrderComparison\ManualDi\CouponService()
+    );
+
+    $constructor = $constructorService->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500'
+    );
+
+    return response()->json([
+        'method_injection' => $method,
+        'constructor_injection' => $constructor
+    ]);
+});
+
+ // STEP16 OFF10の動作比較
+Route::get('/orders/injection-selection/off10', function () {
+
+    // メソッド注入版
+    $methodService = new \App\OrderComparison\ManualDi\CouponOrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // コンストラクタ注入版
+    $constructorService = new \App\OrderComparison\ManualDi\ConstructorCouponOrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ManualDi\CouponService()
+    );
+
+    // 同じ条件で10%割引を適用
+    $method = $methodService->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF10',
+        new \App\OrderComparison\ManualDi\CouponService()
+    );
+
+    $constructor = $constructorService->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF10'
+    );
+
+    return response()->json([
+        'method_injection' => $method,
+        'constructor_injection' => $constructor
+    ]);
+});
+
+ // STEP16 CouponServiceの実装差し替え比較
+Route::get('/orders/injection-selection/replace', function () {
+
+    $stockService = new \App\OrderComparison\ManualDi\StockService();
+
+    $priceService = new \App\OrderComparison\ManualDi\DiscountPriceService(
+        new \App\OrderComparison\ManualDi\MemberService()
+    );
+
+    $repository = new \App\OrderComparison\ManualDi\OrderRepository();
+
+    $normalCoupon = new \App\OrderComparison\ManualDi\CouponService();
+    $campaignCoupon = new \App\OrderComparison\ManualDi\CampaignCouponService();
+
+    // ① メソッド注入：同じインスタンスを使用
+    $methodService = new \App\OrderComparison\ManualDi\CouponOrderService(
+        $stockService,
+        $priceService,
+        $repository
+    );
+
+    $methodNormal = $methodService->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500',
+        $normalCoupon
+    );
+
+    $methodCampaign = $methodService->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500',
+        $campaignCoupon
+    );
+
+    // ② コンストラクタ注入：依存先ごとにインスタンスを生成
+    $constructorNormal = new \App\OrderComparison\ManualDi\ConstructorCouponOrderService(
+        $stockService,
+        $priceService,
+        $repository,
+        $normalCoupon
+    );
+
+    $constructorCampaign = new \App\OrderComparison\ManualDi\ConstructorCouponOrderService(
+        $stockService,
+        $priceService,
+        $repository,
+        $campaignCoupon
+    );
+
+    $constructorNormalResult = $constructorNormal->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500'
+    );
+
+    $constructorCampaignResult = $constructorCampaign->placeOrderWithCoupon(
+        1001,
+        2,
+        'OFF500'
+    );
+
+    return response()->json([
+        'method_injection' => [
+            'normal' => $methodNormal,
+            'campaign' => $methodCampaign
+        ],
+        'constructor_injection' => [
+            'normal' => $constructorNormalResult,
+            'campaign' => $constructorCampaignResult
+        ]
+    ]);
+});
+
+// STEP16 共通ファクトリによる生成処理の集約
+foreach (['web', 'api', 'batch'] as $channel) {
+
+    Route::get(
+        "/orders/injection-selection/factory/{$channel}",
+        function () use ($channel) {
+
+            $service = \App\OrderComparison\ManualDi\CouponOrderServiceFactory::create(
+                true
+            );
+
+            $result = $service->placeOrderWithCoupon(
+                1001,
+                2,
+                'OFF500'
+            );
+
+            return response()->json([
+                'channel' => $channel,
+                'result' => $result
+            ]);
+        }
+    );
+}
+
+// STEP16 メソッド注入：共通ファクトリによる生成処理の集約
+// foreach (['web', 'api', 'batch'] as $channel) {
+
+//     Route::get(
+//         "/orders/injection-selection/method-factory/{$channel}",
+//         function () use ($channel) {
+
+//             // 注文サービスを生成
+//             $service = \App\OrderComparison\ManualDi\MethodCouponOrderServiceFactory::create();
+
+//             // クーポンサービスを生成
+//             $couponService = \App\OrderComparison\ManualDi\MethodCouponOrderServiceFactory::createCouponService(
+//                 true
+//             );
+
+//             // メソッド注入で注文を実行
+//             $result = $service->placeOrderWithCoupon(
+//                 1001,
+//                 2,
+//                 'OFF500',
+//                 $couponService
+//             );
+
+//             return response()->json([
+//                 'channel' => $channel,
+//                 'result' => $result
+//             ]);
+//         }
+//     );
+// }
+
+ // STEP16 コンストラクタ注入：キャンペーン選択の共通化
+// foreach (['web', 'api', 'batch'] as $channel) {
+
+//     Route::get(
+//         "/orders/injection-selection/factory/{$channel}",
+//         function () use ($channel) {
+
+//             // キャンペーン状態はファクトリ側で判断
+//             $service = \App\OrderComparison\ManualDi\CouponOrderServiceFactory::create();
+
+//             $result = $service->placeOrderWithCoupon(
+//                 1001,
+//                 2,
+//                 'OFF500'
+//             );
+
+//             return response()->json([
+//                 'channel' => $channel,
+//                 'result' => $result
+//             ]);
+//         }
+//     );
+// }
+
+ // STEP16 メソッド注入：キャンペーン選択の共通化
+foreach (['web', 'api', 'batch'] as $channel) {
+
+    Route::get(
+        "/orders/injection-selection/method-factory/{$channel}",
+        function () use ($channel) {
+
+            // 注文サービスを生成
+            $service = \App\OrderComparison\ManualDi\MethodCouponOrderServiceFactory::create();
+
+            // キャンペーン状態はファクトリ側で判断
+            $couponService = \App\OrderComparison\ManualDi\MethodCouponOrderServiceFactory::createCouponService();
+
+            // メソッド注入で注文を実行
+            $result = $service->placeOrderWithCoupon(
+                1001,
+                2,
+                'OFF500',
+                $couponService
+            );
+
+            return response()->json([
+                'channel' => $channel,
+                'result' => $result
+            ]);
+        }
+    );
+}
+
+// STEP16 注文ごとの依存先切り替え：メソッド注入
+Route::get(
+    '/orders/injection-selection/per-order/method',
+    function () {
+
+        // 注文サービスは1回だけ生成
+        $service = \App\OrderComparison\ManualDi\MethodCouponOrderServiceFactory::create();
+
+        // 1回目：通常版
+        $normalResult = $service->placeOrderWithCoupon(
+            1001,
+            2,
+            'OFF500',
+            new \App\OrderComparison\ManualDi\CouponService()
+        );
+
+        // 2回目：キャンペーン版
+        $campaignResult = $service->placeOrderWithCoupon(
+            1001,
+            2,
+            'OFF500',
+            new \App\OrderComparison\ManualDi\CampaignCouponService()
+        );
+
+        return response()->json([
+            'normal' => $normalResult,
+            'campaign' => $campaignResult
+        ]);
+    }
+);
+
+// STEP16 注文ごとの依存先切り替え：コンストラクタ注入
+Route::get(
+    '/orders/injection-selection/per-order/constructor',
+    function () {
+
+        // 共通の依存サービスを生成
+        $stockService = new \App\OrderComparison\ManualDi\StockService();
+
+        $priceService = new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        );
+
+        $orderRepository = new \App\OrderComparison\ManualDi\OrderRepository();
+
+        // 1回目：通常版の注文サービスを生成
+        $normalService = new \App\OrderComparison\ManualDi\ConstructorCouponOrderService(
+            $stockService,
+            $priceService,
+            $orderRepository,
+            new \App\OrderComparison\ManualDi\CouponService()
+        );
+
+        $normalResult = $normalService->placeOrderWithCoupon(
+            1001,
+            2,
+            'OFF500'
+        );
+
+        // 2回目：キャンペーン版の注文サービスを生成
+        $campaignService = new \App\OrderComparison\ManualDi\ConstructorCouponOrderService(
+            $stockService,
+            $priceService,
+            $orderRepository,
+            new \App\OrderComparison\ManualDi\CampaignCouponService()
+        );
+
+        $campaignResult = $campaignService->placeOrderWithCoupon(
+            1001,
+            2,
+            'OFF500'
+        );
+
+        return response()->json([
+            'normal' => $normalResult,
+            'campaign' => $campaignResult,
+            'same_instance' => $normalService === $campaignService
+        ]);
+    }
+);
 
