@@ -42,4 +42,19 @@ class OrderController
             $service->placeOrder(1001, 2, 'subscription')
         );
     }
+
+    public function logging(): JsonResponse
+    {
+        $service = new OrderService(
+            new StockService(),
+            new DiscountPriceService(new MemberService),
+            new OrderRepository()
+        );
+
+        $loggingService = new LoggingOrderService($service);
+
+        return response()->json(
+            $loggingService->placeOrder(1001, 2)
+        );
+    }
 }

@@ -38,6 +38,11 @@ Route::get(
     '/orders/direct-new/subscription',
     [\App\OrderComparison\DirectNew\OrderController::class, 'subscription']
 );
+// STEP10 Pure DI - Decorator
+Route::get(
+    '/orders/manual-di/logging',
+    [\App\OrderComparison\ManualDi\OrderController::class, 'logging']
+);
 
 
 // Comparison: CI2-style shared superobject (not Laravel's container)

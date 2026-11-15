@@ -2,7 +2,7 @@
 
 namespace App\OrderComparison\ManualDi;
 
-class OrderService
+class OrderService implements OrderServiceInterface
 {
     public function __construct(
         private StockService $stockService,
