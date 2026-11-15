@@ -2,7 +2,7 @@
 
 namespace App\OrderComparison\ContainerInterface;
 
-class OrderService
+class OrderService implements OrderServiceInterface
 {
     public function __construct(
         private StockServiceInterface $stockService,

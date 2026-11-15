@@ -88,6 +88,11 @@ Route::get(
     '/orders/container-interface/subscription',
     [\App\OrderComparison\ContainerInterface\OrderController::class, 'subscription']
 );
+ // STEP11 DI Container - Decorator
+Route::get(
+    '/orders/container-interface/logging',
+    [\App\OrderComparison\ContainerInterface\OrderController::class, 'logging']
+);
 
 // Comparison: inheritance (template method)
 Route::get('/orders/inheritance', [\App\OrderComparison\Inheritance\OrderController::class, 'index']);

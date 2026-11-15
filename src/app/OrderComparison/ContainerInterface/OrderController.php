@@ -31,4 +31,14 @@ class OrderController
             $this->orderService->placeOrder(1001, 2, 'subscription')
         );
     }
+
+
+    public function logging(
+        OrderServiceInterface $orderService
+    ): JsonResponse {
+        return response()->json(
+            $orderService->placeOrder(1001, 2)
+        );
+    }
+
 }

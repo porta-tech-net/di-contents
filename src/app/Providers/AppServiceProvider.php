@@ -31,6 +31,18 @@ class AppServiceProvider extends ServiceProvider
         //     \App\OrderComparison\ContainerConcrete\FakeStockService::class
         // );
         // $this->app->bind(\App\OrderComparison\ContainerInterface\StockServiceInterface::class, \App\OrderComparison\ContainerInterface\FakeStockService::class);
+        $this->app->bind(
+            \App\OrderComparison\ContainerInterface\OrderServiceInterface::class,
+            function ($app) {
+                $service = $app->make(
+                    \App\OrderComparison\ContainerInterface\OrderService::class
+                );
+
+                return new \App\OrderComparison\ContainerInterface\LoggingOrderService(
+                    $service
+                );
+            }
+        );
 
     }
 
