@@ -309,3 +309,38 @@ Route::get(
     '/orders/manual-di/composition-root/logging',
     fn () => $createOrderController()->logging()
 );
+
+Route::get('/orders/constructor-injection/missing', function () {
+    $test = new \App\OrderComparison\ManualDi\ConstructorInjectionTest();
+
+    return response()->json(
+        $test->missingDependency()
+    );
+});
+
+ // STEP13 コンストラクタ注入：依存先の型チェック
+Route::get('/orders/constructor-injection/invalid-type', function () {
+    $test = new \App\OrderComparison\ManualDi\ConstructorInjectionTest();
+
+    return response()->json(
+        $test->invalidDependencyType()
+    );
+});
+
+ // STEP13 コンストラクタ注入：正常な依存関係
+Route::get('/orders/constructor-injection/valid', function () {
+    $test = new \App\OrderComparison\ManualDi\ConstructorInjectionTest();
+
+    return response()->json(
+        $test->validDependency()
+    );
+});
+
+ // STEP13 コンストラクタ注入：依存先の差し替え
+Route::get('/orders/constructor-injection/replace', function () {
+    $test = new \App\OrderComparison\ManualDi\ConstructorInjectionTest();
+
+    return response()->json(
+        $test->replaceDependency()
+    );
+});
