@@ -344,3 +344,35 @@ Route::get('/orders/constructor-injection/replace', function () {
         $test->replaceDependency()
     );
 });
+
+ // STEP14 メソッド経由での依存注入
+Route::get('/orders/method-injection', function () {
+
+    $service = new \App\OrderComparison\ManualDi\MethodInjectionOrderService(
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    // 1回目：通常の在庫確認
+    $normal = $service->placeOrder(
+        1001,
+        2,
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\MemberService()
+    );
+
+    // 2回目：FakeStockService
+    $fake = $service->placeOrder(
+        1001,
+        2,
+        new \App\OrderComparison\ManualDi\FakeStockService(),
+        new \App\OrderComparison\ManualDi\MemberService()
+    );
+
+    return response()->json([
+        'normal' => $normal,
+        'fake' => $fake
+    ]);
+});
