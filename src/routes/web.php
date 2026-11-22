@@ -832,3 +832,111 @@ Route::get(
     }
 );
 
+/**
+ * STEP17：コントロールフリーク
+ * 依存先を注文サービス内部で生成する
+ */
+Route::get(
+    '/orders/control-freak',
+    function () {
+        $service = new \App\OrderComparison\ControlFreak\ControlFreakOrderService();
+
+        return response()->json(
+            $service->placeOrder(1001, 10)
+        );
+    }
+);
+
+/**
+ * STEP17：Manual DIによる依存先差し替え
+ */
+Route::get('/orders/manual-di/test-stock', function () {
+    $service = new \App\OrderComparison\ManualDi\OrderService(
+        new \App\OrderComparison\ControlFreak\WarehouseStockService(
+            new \App\OrderComparison\ControlFreak\WarehouseConfig(1)
+        ),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    return response()->json(
+        $service->placeOrder(1001, 10)
+    );
+});
+
+
+/**
+ * STEP17：ControlFreak 複数経路の検証
+ *
+ * Web・API・バッチをHTTPルートで模擬する。
+ */
+foreach (['web', 'api', 'batch'] as $channel) {
+    Route::get(
+        "/orders/control-freak/channel/{$channel}",
+        function () use ($channel) {
+            $service = new \App\OrderComparison\ControlFreak\ControlFreakOrderService();
+
+            return response()->json([
+                'channel' => $channel,
+                'result' => $service->placeOrder(1001, 10),
+            ]);
+        }
+    );
+}
+
+
+/**
+ * STEP17：Manual DI 複数経路の検証
+ *
+ * Web・API・バッチをHTTPルートで模擬する。
+ * 経路ごとに異なる倉庫を選択する。
+ */
+foreach ([
+    'web' => 1,
+    'api' => 2,
+    'batch' => 1,
+] as $channel => $warehouseId) {
+    Route::get(
+        "/orders/manual-di/channel/{$channel}",
+        function () use ($channel, $warehouseId) {
+            $service = new \App\OrderComparison\ManualDi\OrderService(
+                new \App\OrderComparison\ControlFreak\WarehouseStockService(
+                    new \App\OrderComparison\ControlFreak\WarehouseConfig($warehouseId)
+                ),
+                new \App\OrderComparison\ManualDi\DiscountPriceService(
+                    new \App\OrderComparison\ManualDi\MemberService()
+                ),
+                new \App\OrderComparison\ManualDi\OrderRepository()
+            );
+
+            return response()->json([
+                'channel' => $channel,
+                'result' => $service->placeOrder(1001, 10),
+            ]);
+        }
+    );
+}
+
+/**
+ * STEP17：ControlFreak改善版の動作確認
+ *
+ * 依存先を外部で生成し、
+ * コンストラクタから注入する。
+ */
+Route::get('/orders/control-freak/improved/{warehouseId}', function (int $warehouseId) {
+    $service = new \App\OrderComparison\ControlFreak\ImprovedOrderService(
+        new \App\OrderComparison\ControlFreak\WarehouseStockService(
+            new \App\OrderComparison\ControlFreak\WarehouseConfig($warehouseId)
+        ),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    return response()->json(
+        $service->placeOrder(1001, 10)
+    );
+});
