@@ -259,7 +259,8 @@ $createOrderController = function () {
             new \App\OrderComparison\ManualDi\DiscountPriceService(
                 new \App\OrderComparison\ManualDi\MemberService()
             ),
-            new \App\OrderComparison\ManualDi\OrderRepository()
+            new \App\OrderComparison\ManualDi\OrderRepository(),
+            new \App\OrderComparison\ServiceLocator\AuditLogService()
         );
     };
 
@@ -858,7 +859,8 @@ Route::get('/orders/manual-di/test-stock', function () {
         new \App\OrderComparison\ManualDi\DiscountPriceService(
             new \App\OrderComparison\ManualDi\MemberService()
         ),
-        new \App\OrderComparison\ManualDi\OrderRepository()
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
     );
 
     return response()->json(
@@ -908,7 +910,8 @@ foreach ([
                 new \App\OrderComparison\ManualDi\DiscountPriceService(
                     new \App\OrderComparison\ManualDi\MemberService()
                 ),
-                new \App\OrderComparison\ManualDi\OrderRepository()
+                new \App\OrderComparison\ManualDi\OrderRepository(),
+                new \App\OrderComparison\ServiceLocator\AuditLogService()
             );
 
             return response()->json([
@@ -939,4 +942,177 @@ Route::get('/orders/control-freak/improved/{warehouseId}', function (int $wareho
     return response()->json(
         $service->placeOrder(1001, 10)
     );
+});
+
+/**
+ * STEP18：サービスロケータ方式の動作確認
+ */
+Route::get('/orders/service-locator', function () {
+    $service = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    return response()->json(
+        $service->placeOrder(1001, 2)
+    );
+});
+
+/**
+ * STEP18：サービスロケータの依存先差し替え
+ */
+Route::get('/orders/service-locator/test-stock', function () {
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ControlFreak\TestStockService::class
+    );
+
+    $service = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    return response()->json(
+        $service->placeOrder(1001, 11)
+    );
+});
+
+/**
+ * STEP18：コンテナ登録変更の影響範囲
+ */
+Route::get('/orders/service-locator/binding-impact', function () {
+
+    // ① 通常の依存先を登録
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ManualDi\StockService::class
+    );
+
+    // ② 登録変更前に注文サービスを生成
+    $beforeService = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    // ③ 在庫サービスの登録を変更
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ControlFreak\TestStockService::class
+    );
+
+    // ④ 登録変更後に注文サービスを生成
+    $afterService = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    return response()->json([
+        'before' => $beforeService->placeOrder(1001, 11),
+        'after' => $afterService->placeOrder(1001, 11),
+    ]);
+});
+
+/**
+ * STEP18：コンテナ登録変更による別処理への影響
+ */
+Route::get('/orders/service-locator/shared-binding', function () {
+
+    // 通常の在庫サービスを登録
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ManualDi\StockService::class
+    );
+
+    // 特別注文用に在庫サービスを差し替える
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ControlFreak\TestStockService::class
+    );
+
+    // 特別注文
+    $specialService = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    // 通常注文（本来は通常の在庫確認を行いたい）
+    $normalService = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    return response()->json([
+        'special_order' => $specialService->placeOrder(1001, 11),
+        'normal_order' => $normalService->placeOrder(1001, 11),
+    ]);
+});
+
+/**
+ * STEP18：Manual DIによる業務別の依存先指定
+ */
+Route::get('/orders/manual-di/shared-binding', function () {
+
+    // 特別注文：テスト用在庫サービスを使用
+    $specialService = new \App\OrderComparison\ManualDi\OrderService(
+        new \App\OrderComparison\ControlFreak\TestStockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    // 通常注文：通常の在庫サービスを使用
+    $normalService = new \App\OrderComparison\ManualDi\OrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    return response()->json([
+        'special_order' => $specialService->placeOrder(1001, 11),
+        'normal_order' => $normalService->placeOrder(1001, 11),
+    ]);
+});
+
+/**
+ * STEP18：サービス生成後の依存先差し替え
+ */
+Route::get('/orders/service-locator/late-binding', function () {
+
+    // ① 通常の在庫サービスを登録
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ManualDi\StockService::class
+    );
+
+    // ② 注文サービスを生成
+    $service = new \App\OrderComparison\ServiceLocator\ServiceLocatorOrderService();
+
+    // ③ 注文サービス生成後に登録を変更
+    app()->bind(
+        \App\OrderComparison\ManualDi\StockService::class,
+        \App\OrderComparison\ControlFreak\TestStockService::class
+    );
+
+    // ④ 11個の注文を実行
+    return response()->json(
+        $service->placeOrder(1001, 11)
+    );
+});
+
+/**
+ * STEP18：コンストラクタ注入による業務別の依存先指定
+ */
+Route::get('/orders/service-locator/improved', function () {
+
+    // 特別注文：テスト用在庫サービスを注入
+    $specialService = new \App\OrderComparison\ServiceLocator\ImprovedOrderService(
+        new \App\OrderComparison\ControlFreak\TestStockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    // 通常注文：通常の在庫サービスを注入
+    $normalService = new \App\OrderComparison\ServiceLocator\ImprovedOrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    return response()->json([
+        'special_order' => $specialService->placeOrder(1001, 11),
+        'normal_order' => $normalService->placeOrder(1001, 11),
+    ]);
 });

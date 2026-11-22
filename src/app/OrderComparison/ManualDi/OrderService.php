@@ -2,12 +2,15 @@
 
 namespace App\OrderComparison\ManualDi;
 
+use App\OrderComparison\ServiceLocator\AuditLogService;
+
 class OrderService implements OrderServiceInterface
 {
     public function __construct(
         private StockService $stockService,
         private DiscountPriceService $priceService,
-        private OrderRepository $orderRepository
+        private OrderRepository $orderRepository,
+        private AuditLogService $auditLogService
     ) {
     }
 
@@ -47,6 +50,10 @@ class OrderService implements OrderServiceInterface
                 $amounts['subtotal'],
                 $amounts['tax'],
                 $amounts['total']
+            ),
+            'audit_log' => $this->auditLogService->record(
+                $productId,
+                $quantity
             ),
         ];
     }
