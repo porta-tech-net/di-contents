@@ -44,6 +44,13 @@ class AppServiceProvider extends ServiceProvider
             }
         );
 
+        $this->app->scoped(
+            \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class,
+            function () {
+                return new \App\OrderComparison\AmbientContext\ScopedWarehouseContext();
+            }
+        );
+
     }
 
     /**

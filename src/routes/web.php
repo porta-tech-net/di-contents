@@ -1116,3 +1116,395 @@ Route::get('/orders/service-locator/improved', function () {
         'normal_order' => $normalService->placeOrder(1001, 11),
     ]);
 });
+
+Route::get('/orders/ambient-context/basic', function () {
+    $stockService = new \App\OrderComparison\AmbientContext\AmbientStockService();
+
+    $orderService = new \App\OrderComparison\ManualDi\OrderService(
+        $stockService,
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    return response()->json(
+        $orderService->placeOrder(1001, 6)
+    );
+});
+
+
+Route::get('/orders/ambient-context/warehouse2', function () {
+    \App\OrderComparison\AmbientContext\WarehouseContext::setWarehouseId(2);
+
+    $stockService = new \App\OrderComparison\AmbientContext\AmbientStockService();
+
+    $orderService = new \App\OrderComparison\ManualDi\OrderService(
+        $stockService,
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    return response()->json(
+        $orderService->placeOrder(1001, 6)
+    );
+});
+
+Route::get('/orders/ambient-context/shared', function () {
+    $context = \App\OrderComparison\AmbientContext\WarehouseContext::class;
+
+    // 倉庫1を設定
+    $context::setWarehouseId(1);
+
+    // 注文サービスAを生成
+    $orderServiceA = new \App\OrderComparison\ManualDi\OrderService(
+        new \App\OrderComparison\AmbientContext\AmbientStockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    // 注文サービスAの生成後、倉庫2に変更
+    $context::setWarehouseId(2);
+
+    // 注文サービスAで注文
+    $result = $orderServiceA->placeOrder(1001, 6);
+
+    return response()->json([
+        'current_warehouse_id' => $context::getWarehouseId(),
+        'order_a' => $result,
+    ]);
+});
+
+Route::get('/orders/ambient-context/multiple', function () {
+    $context = \App\OrderComparison\AmbientContext\WarehouseContext::class;
+
+    $createOrderService = function () {
+        return new \App\OrderComparison\ManualDi\OrderService(
+            new \App\OrderComparison\AmbientContext\AmbientStockService(),
+            new \App\OrderComparison\ManualDi\DiscountPriceService(
+                new \App\OrderComparison\ManualDi\MemberService()
+            ),
+            new \App\OrderComparison\ManualDi\OrderRepository(),
+            new \App\OrderComparison\ServiceLocator\AuditLogService()
+        );
+    };
+
+    // 倉庫1を設定して注文サービスAを生成
+    $context::setWarehouseId(1);
+    $orderServiceA = $createOrderService();
+
+    // 倉庫2を設定して注文サービスBを生成
+    $context::setWarehouseId(2);
+    $orderServiceB = $createOrderService();
+
+    // それぞれの注文サービスで注文
+    $resultA = $orderServiceA->placeOrder(1001, 6);
+    $resultB = $orderServiceB->placeOrder(1001, 6);
+
+    return response()->json([
+        'current_warehouse_id' => $context::getWarehouseId(),
+        'order_a' => $resultA,
+        'order_b' => $resultB,
+    ]);
+});
+
+Route::get('/orders/ambient-context/explicit', function () {
+    $createOrderService = function (int $warehouseId) {
+        $warehouseConfig =
+            new \App\OrderComparison\ControlFreak\WarehouseConfig(
+                $warehouseId
+            );
+
+        $stockService =
+            new \App\OrderComparison\ControlFreak\WarehouseStockService(
+                $warehouseConfig
+            );
+
+        return new \App\OrderComparison\ManualDi\OrderService(
+            $stockService,
+            new \App\OrderComparison\ManualDi\DiscountPriceService(
+                new \App\OrderComparison\ManualDi\MemberService()
+            ),
+            new \App\OrderComparison\ManualDi\OrderRepository(),
+            new \App\OrderComparison\ServiceLocator\AuditLogService()
+        );
+    };
+
+    // 倉庫1用の注文サービス
+    $orderServiceA = $createOrderService(1);
+
+    // 倉庫2用の注文サービス
+    $orderServiceB = $createOrderService(2);
+
+    return response()->json([
+        'order_a' => $orderServiceA->placeOrder(1001, 6),
+        'order_b' => $orderServiceB->placeOrder(1001, 6),
+    ]);
+});
+
+Route::get('/orders/ambient-context/test-order', function () {
+    $context = \App\OrderComparison\AmbientContext\WarehouseContext::class;
+
+    $stockService =
+        new \App\OrderComparison\AmbientContext\AmbientStockService();
+
+    // テストA：倉庫2の在庫不足を確認
+    $context::setWarehouseId(2);
+    $testA = $stockService->hasStock(1001, 6);
+
+    // テストB：倉庫1の在庫確認を想定
+    // ただし、倉庫IDを明示的に初期化していない
+    $testB = $stockService->hasStock(1001, 6);
+
+    // テストBを独立して実行する場合の想定
+    $context::setWarehouseId(1);
+    $testBIndependent = $stockService->hasStock(1001, 6);
+
+    return response()->json([
+        'test_a' => $testA,
+        'test_b_after_a' => $testB,
+        'test_b_with_reset' => $testBIndependent,
+    ]);
+});
+
+Route::get('/orders/ambient-context/restore', function () {
+    $context = \App\OrderComparison\AmbientContext\WarehouseContext::class;
+
+    $stockService =
+        new \App\OrderComparison\AmbientContext\AmbientStockService();
+
+    // 最初の倉庫ID
+    $context::setWarehouseId(1);
+
+    $before = $stockService->hasStock(1001, 6);
+
+    // 現在の状態を保存
+    $originalWarehouseId = $context::getWarehouseId();
+
+    try {
+        // 一時的に倉庫2へ変更
+        $context::setWarehouseId(2);
+
+        $during = $stockService->hasStock(1001, 6);
+    } finally {
+        // 元の倉庫IDへ戻す
+        $context::setWarehouseId($originalWarehouseId);
+    }
+
+    $after = $stockService->hasStock(1001, 6);
+
+    return response()->json([
+        'before' => $before,
+        'during' => $during,
+        'after' => $after,
+        'current_warehouse_id' => $context::getWarehouseId(),
+    ]);
+});
+
+Route::get('/orders/ambient-context/exception', function () {
+    $context = \App\OrderComparison\AmbientContext\WarehouseContext::class;
+
+    $context::setWarehouseId(1);
+
+    $originalWarehouseId = $context::getWarehouseId();
+
+    $caughtMessage = null;
+
+    try {
+        $context::setWarehouseId(2);
+
+        // 意図的に例外を発生させる
+        throw new \RuntimeException('Test exception');
+    } catch (\RuntimeException $e) {
+        $caughtMessage = $e->getMessage();
+    } finally {
+        $context::setWarehouseId($originalWarehouseId);
+    }
+
+    return response()->json([
+        'exception_message' => $caughtMessage,
+        'current_warehouse_id' => $context::getWarehouseId(),
+        'stock_available' =>
+            (new \App\OrderComparison\AmbientContext\AmbientStockService())
+                ->hasStock(1001, 6),
+    ]);
+});
+
+Route::get('/orders/ambient-context/scoped', function () {
+    $contextA = app(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    // コンテキストAの倉庫IDを変更
+    $contextA->setWarehouseId(2);
+
+    // 同じリクエスト内で再取得
+    $contextB = app(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    return response()->json([
+        'same_instance' => $contextA === $contextB,
+        'warehouse_a' => $contextA->getWarehouseId(),
+        'warehouse_b' => $contextB->getWarehouseId(),
+    ]);
+});
+
+Route::get('/orders/ambient-context/scoped-reset', function () {
+    $container = app();
+
+    $contextA = $container->make(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    $contextA->setWarehouseId(2);
+
+    $before = $contextA->getWarehouseId();
+
+    // scopedインスタンスを破棄
+    $container->forgetScopedInstances();
+
+    $contextB = $container->make(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    return response()->json([
+        'before_reset' => $before,
+        'after_reset' => $contextB->getWarehouseId(),
+        'same_instance' => $contextA === $contextB,
+    ]);
+});
+
+Route::get('/orders/ambient-context/scoped-reference', function () {
+    $container = app();
+
+    $contextA = $container->make(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    $contextA->setWarehouseId(2);
+
+    // コンテナが保持するscopedインスタンスを破棄
+    $container->forgetScopedInstances();
+
+    // 新しいインスタンスを取得
+    $contextB = $container->make(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    return response()->json([
+        'old_instance_warehouse' => $contextA->getWarehouseId(),
+        'new_instance_warehouse' => $contextB->getWarehouseId(),
+        'same_instance' => $contextA === $contextB,
+    ]);
+});
+
+Route::get('/orders/ambient-context/scoped-stock', function () {
+    $container = app();
+
+    $contextClass =
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class;
+
+    $stockService =
+        new \App\OrderComparison\AmbientContext\ScopedAmbientStockService();
+
+    // 倉庫1で在庫確認
+    $context = $container->make($contextClass);
+    $context->setWarehouseId(1);
+
+    $warehouse1 = $stockService->hasStock(1001, 6);
+
+    // 同じスコープ内で倉庫2に変更
+    $context->setWarehouseId(2);
+
+    $warehouse2 = $stockService->hasStock(1001, 6);
+
+    // scopedインスタンスの保持を解除
+    $container->forgetScopedInstances();
+
+    // 新しいコンテキストで在庫確認
+    $afterReset = $stockService->hasStock(1001, 6);
+
+    $newContext = $container->make($contextClass);
+
+    return response()->json([
+        'warehouse1' => $warehouse1,
+        'warehouse2' => $warehouse2,
+        'after_reset' => $afterReset,
+        'current_warehouse_id' => $newContext->getWarehouseId(),
+        'same_context_instance' => $context === $newContext,
+    ]);
+});
+
+Route::get('/orders/ambient-context/injection-compare', function () {
+    $container = app();
+
+    $contextClass =
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class;
+
+    $context = $container->make($contextClass);
+    $context->setWarehouseId(2);
+
+    // 実行時にコンテキストを取得する方式
+    $ambientService =
+        new \App\OrderComparison\AmbientContext\ScopedAmbientStockService();
+
+    // コンストラクタでコンテキストを受け取る方式
+    $injectedService =
+        new \App\OrderComparison\AmbientContext\InjectedScopedStockService(
+            $context
+        );
+
+    // スコープ初期化前
+    $beforeAmbient = $ambientService->hasStock(1001, 6);
+    $beforeInjected = $injectedService->hasStock(1001, 6);
+
+    // コンテナが保持するscopedインスタンスを解除
+    $container->forgetScopedInstances();
+
+    // スコープ初期化後
+    $afterAmbient = $ambientService->hasStock(1001, 6);
+    $afterInjected = $injectedService->hasStock(1001, 6);
+
+    $newContext = $container->make($contextClass);
+
+    return response()->json([
+        'before_reset' => [
+            'ambient' => $beforeAmbient,
+            'injected' => $beforeInjected,
+        ],
+        'after_reset' => [
+            'ambient' => $afterAmbient,
+            'injected' => $afterInjected,
+        ],
+        'old_context_warehouse' => $context->getWarehouseId(),
+        'new_context_warehouse' => $newContext->getWarehouseId(),
+    ]);
+});
+
+Route::get('/orders/ambient-context/http-lifecycle/{action}', function (string $action) {
+    $context = app(
+        \App\OrderComparison\AmbientContext\ScopedWarehouseContext::class
+    );
+
+    if ($action === 'set') {
+        $context->setWarehouseId(2);
+    } elseif ($action !== 'get') {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid action',
+        ], 400);
+    }
+
+    return response()->json([
+        'action' => $action,
+        'warehouse_id' => $context->getWarehouseId(),
+    ]);
+});
