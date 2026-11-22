@@ -1508,3 +1508,243 @@ Route::get('/orders/ambient-context/http-lifecycle/{action}', function (string $
         'warehouse_id' => $context->getWarehouseId(),
     ]);
 });
+
+Route::get('/orders/constrained-construction/basic', function () {
+    $stockService =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+
+    $priceService =
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        );
+
+    $repository =
+        new \App\OrderComparison\ManualDi\OrderRepository();
+
+    $auditLogService =
+        new \App\OrderComparison\ServiceLocator\AuditLogService();
+
+    $orderService =
+        new \App\OrderComparison\ManualDi\OrderService(
+            $stockService,
+            $priceService,
+            $repository,
+            $auditLogService
+        );
+
+    return response()->json(
+        $orderService->placeOrder(1001, 6)
+    );
+});
+
+Route::get('/orders/constrained-construction/warehouse2', function () {
+    // 倉庫2の注文処理を想定
+    $requestedWarehouseId = 2;
+
+    // 生成制約により倉庫IDを渡せない
+    $stockService =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+    $stockService->setWarehouse($requestedWarehouseId);
+
+    $priceService =
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        );
+
+    $repository =
+        new \App\OrderComparison\ManualDi\OrderRepository();
+
+    $auditLogService =
+        new \App\OrderComparison\ServiceLocator\AuditLogService();
+
+    $orderService =
+        new \App\OrderComparison\ManualDi\OrderService(
+            $stockService,
+            $priceService,
+            $repository,
+            $auditLogService
+        );
+
+    return response()->json([
+        'requested_warehouse_id' => $requestedWarehouseId,
+        'result' => $orderService->placeOrder(1001, 6),
+    ]);
+});
+
+Route::get('/orders/constrained-construction/unconfigured', function () {
+    $stockService =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+
+    // setWarehouse() を意図的に呼ばない
+
+    try {
+        $available = $stockService->hasStock(1001, 6);
+
+        return response()->json([
+            'success' => true,
+            'stock_available' => $available,
+        ]);
+    } catch (\LogicException $e) {
+        return response()->json([
+            'success' => false,
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+        ]);
+    }
+});
+
+Route::get('/orders/constrained-construction/di', function () {
+    $warehouseId = 2;
+
+    // 依存先を明示的に生成
+    $config =
+        new \App\OrderComparison\ControlFreak\WarehouseConfig(
+            $warehouseId
+        );
+
+    $stockService =
+        new \App\OrderComparison\ControlFreak\WarehouseStockService(
+            $config
+        );
+
+    $priceService =
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        );
+
+    $repository =
+        new \App\OrderComparison\ManualDi\OrderRepository();
+
+    $auditLogService =
+        new \App\OrderComparison\ServiceLocator\AuditLogService();
+
+    $orderService =
+        new \App\OrderComparison\ManualDi\OrderService(
+            $stockService,
+            $priceService,
+            $repository,
+            $auditLogService
+        );
+
+    return response()->json([
+        'warehouse_id' => $warehouseId,
+        'result' => $orderService->placeOrder(1001, 6),
+    ]);
+});
+
+Route::get('/orders/constrained-construction/injected', function () {
+    $warehouseId = 2;
+
+    // 外部で依存先を生成
+    $config =
+        new \App\OrderComparison\ControlFreak\WarehouseConfig(
+            $warehouseId
+        );
+
+    $warehouseStockService =
+        new \App\OrderComparison\ControlFreak\WarehouseStockService(
+            $config
+        );
+
+    // 引数なしで生成
+    $stockService =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+
+    // 生成後に依存先を注入
+    $stockService->setStockService(
+        $warehouseStockService
+    );
+
+    $priceService =
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        );
+
+    $repository =
+        new \App\OrderComparison\ManualDi\OrderRepository();
+
+    $auditLogService =
+        new \App\OrderComparison\ServiceLocator\AuditLogService();
+
+    $orderService =
+        new \App\OrderComparison\ManualDi\OrderService(
+            $stockService,
+            $priceService,
+            $repository,
+            $auditLogService
+        );
+
+    return response()->json([
+        'warehouse_id' => $warehouseId,
+        'result' => $orderService->placeOrder(1001, 6),
+    ]);
+});
+
+Route::get('/orders/constrained-construction/overwrite', function () {
+    // パターンA：倉庫1を設定した後、倉庫2のサービスを注入
+    $serviceA =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+
+    $serviceA->setWarehouse(1);
+
+    $serviceA->setStockService(
+        new \App\OrderComparison\ControlFreak\WarehouseStockService(
+            new \App\OrderComparison\ControlFreak\WarehouseConfig(2)
+        )
+    );
+
+    // パターンB：倉庫2のサービスを注入した後、倉庫1を設定
+    $serviceB =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+
+    $serviceB->setStockService(
+        new \App\OrderComparison\ControlFreak\WarehouseStockService(
+            new \App\OrderComparison\ControlFreak\WarehouseConfig(2)
+        )
+    );
+
+    $serviceB->setWarehouse(1);
+
+    return response()->json([
+        'pattern_a' => [
+            'order' => 'setWarehouse(1) -> setStockService(warehouse2)',
+            'stock_available' => $serviceA->hasStock(1001, 6),
+        ],
+        'pattern_b' => [
+            'order' => 'setStockService(warehouse2) -> setWarehouse(1)',
+            'stock_available' => $serviceB->hasStock(1001, 6),
+        ],
+    ]);
+});
+
+Route::get('/orders/constrained-construction/reconfigure', function () {
+    $stockService =
+        new \App\OrderComparison\ConstrainedConstruction\ConstrainedStockService();
+
+    // 最初に倉庫1を設定
+    $stockService->setWarehouse(1);
+
+    $before = $stockService->hasStock(1001, 6);
+
+    $exceptionMessage = null;
+
+    try {
+        // 倉庫2の在庫サービスで上書きを試みる
+        $stockService->setStockService(
+            new \App\OrderComparison\ControlFreak\WarehouseStockService(
+                new \App\OrderComparison\ControlFreak\WarehouseConfig(2)
+            )
+        );
+    } catch (\LogicException $e) {
+        $exceptionMessage = $e->getMessage();
+    }
+
+    // 例外発生後も倉庫1の設定が維持されているか確認
+    $after = $stockService->hasStock(1001, 6);
+
+    return response()->json([
+        'before_reconfigure' => $before,
+        'exception_message' => $exceptionMessage,
+        'after_reconfigure' => $after,
+    ]);
+});
