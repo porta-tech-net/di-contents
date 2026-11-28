@@ -45,7 +45,7 @@ class ConstrainedStockService extends StockService
     ): bool {
         if ($this->stockService === null) {
             throw new LogicException(
-                'Stock service is not configured'
+                'Warehouse is not configured'
             );
         }
 

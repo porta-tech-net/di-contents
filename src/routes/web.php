@@ -1748,3 +1748,317 @@ Route::get('/orders/constrained-construction/reconfigure', function () {
         'after_reconfigure' => $after,
     ]);
 });
+
+Route::get('/orders/constructor-over-injection/basic', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService(),
+        new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService(),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    return response()->json(
+        $service->placeOrder(1001, 6)
+    );
+});
+
+Route::get('/orders/constructor-over-injection/insufficient-stock', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService(),
+        new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService(),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    return response()->json(
+        $service->placeOrder(1001, 11)
+    );
+});
+
+Route::get('/orders/constructor-over-injection/unexpected-payment', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService(),
+        new \App\OrderComparison\ConstructorOverInjection\UnexpectedPaymentService(),
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService(),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    $insufficientStock = $service->placeOrder(1001, 11);
+
+    try {
+        $availableStock = $service->placeOrder(1001, 6);
+    } catch (\LogicException $e) {
+        $availableStock = [
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+        ];
+    }
+
+    return response()->json([
+        'insufficient_stock' => $insufficientStock,
+        'available_stock' => $availableStock,
+    ]);
+});
+
+Route::get('/orders/constructor-over-injection/grouped', function () {
+    $originalService = new \App\OrderComparison\ConstructorOverInjection\OrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService(),
+        new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService(),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    $dependencies = new \App\OrderComparison\ConstructorOverInjection\OrderDependencies(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService(),
+        new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService(),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    $groupedService = new \App\OrderComparison\ConstructorOverInjection\GroupedOrderService(
+        $dependencies
+    );
+
+    $originalSuccess = $originalService->placeOrder(1001, 6);
+    $groupedSuccess = $groupedService->placeOrder(1001, 6);
+
+    $originalFailure = $originalService->placeOrder(1001, 11);
+    $groupedFailure = $groupedService->placeOrder(1001, 11);
+
+    return response()->json([
+        'normal_order' => [
+            'original' => $originalSuccess,
+            'grouped' => $groupedSuccess,
+            'same_result' => $originalSuccess === $groupedSuccess,
+        ],
+        'insufficient_stock' => [
+            'original' => $originalFailure,
+            'grouped' => $groupedFailure,
+            'same_result' => $originalFailure === $groupedFailure,
+        ],
+    ]);
+});
+
+Route::get('/orders/constructor-over-injection/validation', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderValidationService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    return response()->json([
+        'normal_order' => $service->validate(1001, 6),
+        'insufficient_stock' => $service->validate(1001, 11),
+    ]);
+});
+
+Route::get('/orders/constructor-over-injection/execution', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderExecutionService(
+        new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+        new \App\OrderComparison\ManualDi\OrderRepository()
+    );
+
+    $amounts = [
+        'subtotal' => 4800,
+        'tax' => 384,
+        'total' => 5184,
+    ];
+
+    return response()->json(
+        $service->execute(1001, 6, $amounts)
+    );
+});
+
+Route::get('/orders/constructor-over-injection/completion', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderCompletionService(
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService()
+    );
+
+    $shipping = $service->arrangeShipping(1001, 6);
+
+    $completion = $service->complete(1001, 6, 5184);
+
+    return response()->json([
+        'shipping' => $shipping,
+        'notification' => $completion['notification'],
+        'points' => $completion['points'],
+    ]);
+});
+
+Route::get('/orders/constructor-over-injection/comparison', function () {
+    $originalService = new \App\OrderComparison\ConstructorOverInjection\OrderService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ManualDi\OrderRepository(),
+        new \App\OrderComparison\ServiceLocator\AuditLogService(),
+        new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+        new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+        new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+        new \App\OrderComparison\ConstructorOverInjection\PointService(),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    $groupedService = new \App\OrderComparison\ConstructorOverInjection\GroupedOrderService(
+        new \App\OrderComparison\ConstructorOverInjection\OrderDependencies(
+            new \App\OrderComparison\ManualDi\StockService(),
+            new \App\OrderComparison\ManualDi\DiscountPriceService(
+                new \App\OrderComparison\ManualDi\MemberService()
+            ),
+            new \App\OrderComparison\ManualDi\OrderRepository(),
+            new \App\OrderComparison\ServiceLocator\AuditLogService(),
+            new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+            new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+            new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+            new \App\OrderComparison\ConstructorOverInjection\PointService(),
+            new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+        )
+    );
+
+    $refactoredService = new \App\OrderComparison\ConstructorOverInjection\RefactoredOrderService(
+        new \App\OrderComparison\ConstructorOverInjection\OrderValidationService(
+            new \App\OrderComparison\ManualDi\StockService(),
+            new \App\OrderComparison\ManualDi\DiscountPriceService(
+                new \App\OrderComparison\ManualDi\MemberService()
+            ),
+            new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+        ),
+        new \App\OrderComparison\ConstructorOverInjection\OrderExecutionService(
+            new \App\OrderComparison\ConstructorOverInjection\PaymentService(),
+            new \App\OrderComparison\ManualDi\OrderRepository()
+        ),
+        new \App\OrderComparison\ConstructorOverInjection\OrderCompletionService(
+            new \App\OrderComparison\ConstructorOverInjection\ShippingService(),
+            new \App\OrderComparison\ConstructorOverInjection\NotificationService(),
+            new \App\OrderComparison\ConstructorOverInjection\PointService()
+        ),
+        new \App\OrderComparison\ServiceLocator\AuditLogService()
+    );
+
+    $quantities = [3, 5, 6, 11];
+
+    $results = [];
+
+    foreach ($quantities as $quantity) {
+        $original = $originalService->placeOrder(
+            1001,
+            $quantity
+        );
+
+        $grouped = $groupedService->placeOrder(
+            1001,
+            $quantity
+        );
+
+        $refactored = $refactoredService->placeOrder(
+            1001,
+            $quantity
+        );
+
+        $results[] = [
+            'quantity' => $quantity,
+            'original' => $original,
+            'grouped' => $grouped,
+            'refactored' => $refactored,
+            'same_result' =>
+                $original === $grouped
+                && $original === $refactored,
+        ];
+    }
+
+    return response()->json($results);
+});
+
+//     $originalSuccess = $originalService->placeOrder(1001, 6);
+//     $groupedSuccess = $groupedService->placeOrder(1001, 6);
+//     $refactoredSuccess = $refactoredService->placeOrder(1001, 6);
+
+//     $originalFailure = $originalService->placeOrder(1001, 11);
+//     $groupedFailure = $groupedService->placeOrder(1001, 11);
+//     $refactoredFailure = $refactoredService->placeOrder(1001, 11);
+
+//     return response()->json([
+//         'normal_order' => [
+//             'original' => $originalSuccess,
+//             'grouped' => $groupedSuccess,
+//             'refactored' => $refactoredSuccess,
+//             'same_result' =>
+//                 $originalSuccess === $groupedSuccess
+//                 && $originalSuccess === $refactoredSuccess,
+//         ],
+//         'insufficient_stock' => [
+//             'original' => $originalFailure,
+//             'grouped' => $groupedFailure,
+//             'refactored' => $refactoredFailure,
+//             'same_result' =>
+//                 $originalFailure === $groupedFailure
+//                 && $originalFailure === $refactoredFailure,
+//         ],
+//     ]);
+// });
+
+Route::get('/orders/constructor-over-injection/validation-limit', function () {
+    $service = new \App\OrderComparison\ConstructorOverInjection\OrderValidationService(
+        new \App\OrderComparison\ManualDi\StockService(),
+        new \App\OrderComparison\ManualDi\DiscountPriceService(
+            new \App\OrderComparison\ManualDi\MemberService()
+        ),
+        new \App\OrderComparison\ConstructorOverInjection\FraudCheckService()
+    );
+
+    $quantities = [3, 5, 6, 11];
+
+    $results = [];
+
+    foreach ($quantities as $quantity) {
+        $results[] = [
+            'quantity' => $quantity,
+            'result' => $service->validate(
+                1001,
+                $quantity
+            ),
+        ];
+    }
+
+    return response()->json($results);
+});
